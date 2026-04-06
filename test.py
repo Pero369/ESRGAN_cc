@@ -24,6 +24,9 @@ def test(args):
                     lr_img = load_image(os.path.join(args.input_path, img_name)).to(device)
                     sr_img = generator(lr_img)
                     save_image(sr_img[0], os.path.join(args.output_dir, img_name))
+                    del lr_img, sr_img
+                    if device.type == 'cuda':
+                        torch.cuda.empty_cache()
 
     print(f'超分辨率结果已保存到 {args.output_dir}')
 

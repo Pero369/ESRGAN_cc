@@ -10,10 +10,16 @@ class PerceptualLoss(nn.Module):
         for param in self.feature_extractor.parameters():
             param.requires_grad = False
         self.criterion = nn.L1Loss()
+        # VGG19 预训练时使用的 ImageNet 标准化参数
+        self.register_buffer('mean', torch.tensor([0.485, 0.456, 0.406]).view(1, 3, 1, 1))
+        self.register_buffer('std', torch.tensor([0.229, 0.224, 0.225]).view(1, 3, 1, 1))
+
+    def _normalize(self, x):
+        return (x - self.mean) / self.std
 
     def forward(self, sr, hr):
-        sr_feat = self.feature_extractor(sr)
-        hr_feat = self.feature_extractor(hr)
+        sr_feat = self.feature_extractor(self._normalize(sr))
+        hr_feat = self.feature_extractor(self._normalize(hr))
         return self.criterion(sr_feat, hr_feat)
 
 class GANLoss(nn.Module):
