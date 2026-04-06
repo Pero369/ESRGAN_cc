@@ -29,7 +29,7 @@ class Config:
     sample_dir = './samples'
 
     # 退化参数
-    enable_degradation = False  # 总开关（设为False以禁用退化模块）
+    enable_degradation = True  # 总开关（启用退化模块）
     enable_blur = True         # 高斯模糊开关
     enable_noise = True        # 高斯噪声开关
     enable_jpeg = True         # JPEG压缩开关
