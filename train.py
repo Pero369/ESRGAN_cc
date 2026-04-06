@@ -28,7 +28,7 @@ def train():
     optimizer_d = optim.Adam(discriminator.parameters(), lr=Config.lr_d, betas=(Config.beta1, Config.beta2))
 
     # 数据加载
-    train_dataset = SRDataset(Config.train_hr_path, Config.hr_size, Config.scale_factor)
+    train_dataset = SRDataset(Config.train_hr_path, Config.hr_size, Config.scale_factor, config=Config)
     train_loader = DataLoader(train_dataset, batch_size=Config.batch_size, shuffle=True, num_workers=4)
 
     # 阶段1: PSNR预训练
@@ -81,9 +81,10 @@ def train():
             sr_img = generator(lr_img)
             d_real = discriminator(hr_img).detach()
             d_fake = discriminator(sr_img)
+            pix_loss = pixel_loss(sr_img, hr_img)
             perc_loss = perceptual_loss(sr_img, hr_img)
             adv_loss = gan_loss(d_real, d_fake, is_disc=False)
-            g_loss = perc_loss * Config.lambda_perceptual + adv_loss * Config.lambda_adversarial
+            g_loss = pix_loss * Config.lambda_pixel + perc_loss * Config.lambda_perceptual + adv_loss * Config.lambda_adversarial
             g_loss.backward()
             optimizer_g.step()
 
