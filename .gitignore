@@ -1,0 +1,46 @@
+# Python
+__pycache__/
+*.py[cod]
+*.pyo
+*.pyd
+*.egg
+*.egg-info/
+dist/
+build/
+.eggs/
+*.so
+
+# 虚拟环境
+venv/
+env/
+.venv/
+.env/
+
+# 训练产物 - 模型权重
+checkpoints/*.pth
+
+# 训练产物 - 样本图像
+samples/
+
+# 推理结果
+results/
+
+# 数据集（通常不入库）
+data/train_hr/
+data/val_hr/
+
+# Jupyter
+.ipynb_checkpoints/
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# 系统文件
+.DS_Store
+Thumbs.db
+
+# Claude Code 内部文件
+.claude/
