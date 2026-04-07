@@ -18,10 +18,10 @@ from utils import save_image
 # ============================================================
 EXPERIMENTS = [
     {"lambda_pixel": 0.08},
-    {"lambda_pixel": 0.10},
-    {"lambda_pixel": 0.12},
-    {"lambda_pixel": 0.15},
-    {"lambda_pixel": 0.20},
+    {"lambda_pixel": 0.09},
+    {"lambda_pixel": 0.11},
+    {"lambda_pixel": 0.13},
+    {"lambda_pixel": 0.07},
 ]
 # ============================================================
 

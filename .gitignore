@@ -17,7 +17,7 @@ env/
 .env/
 
 # 训练产物 - 模型权重
-checkpoints/*.pth
+checkpoints/
 
 # 训练产物 - 样本图像
 samples/
