@@ -1,6 +1,45 @@
 import torch
 import torch.nn as nn
 
+
+class ChannelAttention(nn.Module):
+    def __init__(self, channels, reduction=16):
+        super().__init__()
+        self.mlp = nn.Sequential(
+            nn.Linear(channels, channels // reduction, bias=False),
+            nn.ReLU(inplace=True),
+            nn.Linear(channels // reduction, channels, bias=False),
+        )
+
+    def forward(self, x):
+        avg = self.mlp(x.mean(dim=[2, 3]))
+        mx = self.mlp(x.amax(dim=[2, 3]))
+        scale = torch.sigmoid(avg + mx).unsqueeze(-1).unsqueeze(-1)
+        return x * scale
+
+
+class SpatialAttention(nn.Module):
+    def __init__(self):
+        super().__init__()
+        self.conv = nn.Conv2d(2, 1, 7, padding=3, bias=False)
+
+    def forward(self, x):
+        avg = x.mean(dim=1, keepdim=True)
+        mx, _ = x.max(dim=1, keepdim=True)
+        scale = torch.sigmoid(self.conv(torch.cat([avg, mx], dim=1)))
+        return x * scale
+
+
+class CBAM(nn.Module):
+    def __init__(self, channels):
+        super().__init__()
+        self.ca = ChannelAttention(channels)
+        self.sa = SpatialAttention()
+
+    def forward(self, x):
+        return self.sa(self.ca(x))
+
+
 class DenseBlock(nn.Module):
     def __init__(self, channels=64):
         super().__init__()
@@ -21,15 +60,18 @@ class DenseBlock(nn.Module):
         return x5 * self.beta + x
 
 class RRDB(nn.Module):
-    def __init__(self, channels=64):
+    def __init__(self, channels=64, enable_cbam=False):
         super().__init__()
         self.dense1 = DenseBlock(channels)
         self.dense2 = DenseBlock(channels)
         self.dense3 = DenseBlock(channels)
+        self.cbam = CBAM(channels) if enable_cbam else None
         self.beta = 0.2
 
     def forward(self, x):
         out = self.dense1(x)
         out = self.dense2(out)
         out = self.dense3(out)
+        if self.cbam is not None:
+            out = self.cbam(out)
         return out * self.beta + x

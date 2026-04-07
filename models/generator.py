@@ -3,10 +3,10 @@ import torch.nn as nn
 from .rrdb import RRDB
 
 class Generator(nn.Module):
-    def __init__(self, num_rrdb=23, channels=64):
+    def __init__(self, num_rrdb=23, channels=64, enable_cbam=False):
         super().__init__()
         self.conv_first = nn.Conv2d(3, channels, 3, 1, 1)
-        self.rrdb_blocks = nn.Sequential(*[RRDB(channels) for _ in range(num_rrdb)])
+        self.rrdb_blocks = nn.Sequential(*[RRDB(channels, enable_cbam=enable_cbam) for _ in range(num_rrdb)])
         self.conv_body = nn.Conv2d(channels, channels, 3, 1, 1)
 
         self.upconv1 = nn.Conv2d(channels, channels * 4, 3, 1, 1)

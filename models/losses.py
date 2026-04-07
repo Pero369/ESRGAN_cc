@@ -1,5 +1,6 @@
 import torch
 import torch.nn as nn
+import torch.nn.functional as F
 import torchvision.models as models
 
 class PerceptualLoss(nn.Module):
@@ -38,3 +39,9 @@ class PixelLoss(nn.Module):
 
     def forward(self, sr, hr):
         return self.criterion(sr, hr)
+
+class FFTLoss(nn.Module):
+    def forward(self, sr, hr):
+        sr_fft = torch.abs(torch.fft.rfft2(sr))
+        hr_fft = torch.abs(torch.fft.rfft2(hr))
+        return F.l1_loss(sr_fft, hr_fft)

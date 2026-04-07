@@ -28,6 +28,14 @@ class Config:
     checkpoint_dir = './checkpoints'
     sample_dir = './samples'
 
+    # 改进模块开关
+    enable_fft_loss = False
+    lambda_fft = 0.1
+    enable_adaptive_pixel_weight = False
+    adaptive_pixel_decay = 0.8
+    enable_cbam = False
+    enable_second_order = False
+
     # 退化参数
     enable_degradation = True  # 总开关（启用退化模块）
     enable_blur = True         # 高斯模糊开关
@@ -46,3 +54,11 @@ class Config:
     # JPEG压缩参数
     jpeg_quality_range = (60, 95)    # JPEG质量范围
     jpeg_prob = 0.8                  # 应用概率
+
+    # 二阶退化参数（更轻微）
+    second_blur_sigma_range = (0.1, 1.5)
+    second_blur_prob = 0.5
+    second_jpeg_quality_range = (75, 95)
+    second_jpeg_prob = 0.5
+    second_noise_sigma_range = (0, 8)
+    second_noise_prob = 0.5

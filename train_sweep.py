@@ -8,7 +8,7 @@ from torch.utils.data import DataLoader
 from tqdm import tqdm
 import os
 
-from models import Generator, Discriminator, PerceptualLoss, GANLoss, PixelLoss
+from models import Generator, Discriminator, PerceptualLoss, GANLoss, PixelLoss, FFTLoss
 from data import SRDataset
 from config import Config
 from utils import save_image
@@ -42,12 +42,13 @@ def run_experiment(cfg, exp_name: str):
     os.makedirs(ckpt_dir, exist_ok=True)
     os.makedirs(sample_dir, exist_ok=True)
 
-    generator = Generator(cfg.num_rrdb_blocks, cfg.num_channels).to(device)
+    generator = Generator(cfg.num_rrdb_blocks, cfg.num_channels, enable_cbam=cfg.enable_cbam).to(device)
     discriminator = Discriminator().to(device)
 
     pixel_loss = PixelLoss()
     perceptual_loss = PerceptualLoss().to(device)
     gan_loss = GANLoss()
+    fft_loss = FFTLoss() if cfg.enable_fft_loss else None
 
     optimizer_g = optim.Adam(generator.parameters(), lr=cfg.lr_g, betas=(cfg.beta1, cfg.beta2))
     optimizer_d = optim.Adam(discriminator.parameters(), lr=cfg.lr_d, betas=(cfg.beta1, cfg.beta2))
@@ -83,6 +84,11 @@ def run_experiment(cfg, exp_name: str):
         discriminator.train()
         epoch_g_loss = epoch_d_loss = 0
 
+        if cfg.enable_adaptive_pixel_weight:
+            lambda_pixel = cfg.lambda_pixel * (1 - cfg.adaptive_pixel_decay * epoch / cfg.num_epochs_gan)
+        else:
+            lambda_pixel = cfg.lambda_pixel
+
         for lr_img, hr_img in tqdm(train_loader, desc=f"GAN {epoch+1}/{cfg.num_epochs_gan}"):
             lr_img, hr_img = lr_img.to(device), hr_img.to(device)
 
@@ -98,7 +104,9 @@ def run_experiment(cfg, exp_name: str):
             pix_loss = pixel_loss(sr_img, hr_img)
             perc_loss = perceptual_loss(sr_img, hr_img)
             adv_loss = gan_loss(d_real, discriminator(sr_img), is_disc=False)
-            g_loss = pix_loss * cfg.lambda_pixel + perc_loss * cfg.lambda_perceptual + adv_loss * cfg.lambda_adversarial
+            g_loss = pix_loss * lambda_pixel + perc_loss * cfg.lambda_perceptual + adv_loss * cfg.lambda_adversarial
+            if fft_loss is not None:
+                g_loss = g_loss + fft_loss(sr_img, hr_img) * cfg.lambda_fft
             g_loss.backward()
             optimizer_g.step()
 

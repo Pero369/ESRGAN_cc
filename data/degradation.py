@@ -49,6 +49,14 @@ class DegradationPipeline:
         if self.config.enable_noise:
             img_np = self._apply_noise(img_np)
 
+        if getattr(self.config, 'enable_second_order', False):
+            if self.config.enable_blur:
+                img_np = self._apply_blur_second(img_np)
+            if self.config.enable_jpeg:
+                img_np = self._apply_jpeg_second(img_np)
+            if self.config.enable_noise:
+                img_np = self._apply_noise_second(img_np)
+
         return Image.fromarray(img_np)
 
     def _apply_blur(self, img_np):
@@ -132,3 +140,28 @@ class DegradationPipeline:
 
         # 转换回numpy数组
         return np.array(compressed_img)
+
+    def _apply_blur_second(self, img_np):
+        if random.random() > self.config.second_blur_prob:
+            return img_np
+        sigma = random.uniform(*self.config.second_blur_sigma_range)
+        kernel_size = 7
+        img_bgr = cv2.cvtColor(img_np, cv2.COLOR_RGB2BGR)
+        blurred = cv2.GaussianBlur(img_bgr, (kernel_size, kernel_size), sigma)
+        return cv2.cvtColor(blurred, cv2.COLOR_BGR2RGB)
+
+    def _apply_jpeg_second(self, img_np):
+        if random.random() > self.config.second_jpeg_prob:
+            return img_np
+        quality = random.randint(*self.config.second_jpeg_quality_range)
+        buffer = io.BytesIO()
+        Image.fromarray(img_np).save(buffer, format='JPEG', quality=quality)
+        buffer.seek(0)
+        return np.array(Image.open(buffer))
+
+    def _apply_noise_second(self, img_np):
+        if random.random() > self.config.second_noise_prob:
+            return img_np
+        sigma = random.uniform(*self.config.second_noise_sigma_range)
+        noisy = img_np.astype(np.float32) + np.random.normal(0, sigma, img_np.shape)
+        return np.clip(noisy, 0, 255).astype(np.uint8)

@@ -4,7 +4,7 @@ from torch.utils.data import DataLoader
 from tqdm import tqdm
 import os
 
-from models import Generator, Discriminator, PerceptualLoss, GANLoss, PixelLoss
+from models import Generator, Discriminator, PerceptualLoss, GANLoss, PixelLoss, FFTLoss
 from data import SRDataset
 from config import Config
 from utils import save_image
@@ -15,13 +15,14 @@ def train():
     os.makedirs(Config.sample_dir, exist_ok=True)
 
     # 初始化模型
-    generator = Generator(Config.num_rrdb_blocks, Config.num_channels).to(device)
+    generator = Generator(Config.num_rrdb_blocks, Config.num_channels, enable_cbam=Config.enable_cbam).to(device)
     discriminator = Discriminator().to(device)
 
     # 损失函数
     pixel_loss = PixelLoss()
     perceptual_loss = PerceptualLoss().to(device)
     gan_loss = GANLoss()
+    fft_loss = FFTLoss() if Config.enable_fft_loss else None
 
     # 优化器
     optimizer_g = optim.Adam(generator.parameters(), lr=Config.lr_g, betas=(Config.beta1, Config.beta2))
@@ -64,6 +65,12 @@ def train():
         epoch_g_loss = 0
         epoch_d_loss = 0
 
+        # 自适应像素损失权重
+        if Config.enable_adaptive_pixel_weight:
+            lambda_pixel = Config.lambda_pixel * (1 - Config.adaptive_pixel_decay * epoch / Config.num_epochs_gan)
+        else:
+            lambda_pixel = Config.lambda_pixel
+
         for lr_img, hr_img in tqdm(train_loader, desc=f'Epoch {epoch+1}/{Config.num_epochs_gan}'):
             lr_img, hr_img = lr_img.to(device), hr_img.to(device)
 
@@ -84,7 +91,9 @@ def train():
             pix_loss = pixel_loss(sr_img, hr_img)
             perc_loss = perceptual_loss(sr_img, hr_img)
             adv_loss = gan_loss(d_real, d_fake, is_disc=False)
-            g_loss = pix_loss * Config.lambda_pixel + perc_loss * Config.lambda_perceptual + adv_loss * Config.lambda_adversarial
+            g_loss = pix_loss * lambda_pixel + perc_loss * Config.lambda_perceptual + adv_loss * Config.lambda_adversarial
+            if fft_loss is not None:
+                g_loss = g_loss + fft_loss(sr_img, hr_img) * Config.lambda_fft
             g_loss.backward()
             optimizer_g.step()
 
