@@ -17,7 +17,8 @@ def test(args):
         if os.path.isfile(args.input_path):
             lr_img = load_image(args.input_path).to(device)
             sr_img = generator(lr_img)
-            save_image(sr_img[0], os.path.join(args.output_dir, 'output.png'))
+            base = os.path.splitext(os.path.basename(args.input_path))[0]
+            save_image(sr_img[0], os.path.join(args.output_dir, f'{base}_sr.png'))
         else:
             for img_name in os.listdir(args.input_path):
                 if img_name.endswith(('.png', '.jpg', '.jpeg')):
