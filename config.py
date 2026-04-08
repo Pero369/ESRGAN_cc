@@ -4,6 +4,11 @@ class Config:
     num_channels = 64
     scale_factor = 4
 
+    # 轻量化配置
+    use_light_model = True
+    light_num_rrdb_blocks = 8
+    light_num_channels = 32
+
     # 训练参数
     batch_size = 16
     num_epochs_psnr = 50

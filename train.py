@@ -5,6 +5,7 @@ from tqdm import tqdm
 import os
 
 from models import Generator, Discriminator, PerceptualLoss, GANLoss, PixelLoss
+from models.generator import LightGenerator
 from data import SRDataset
 from config import Config
 from utils import save_image
@@ -15,7 +16,10 @@ def train():
     os.makedirs(Config.sample_dir, exist_ok=True)
 
     # 初始化模型
-    generator = Generator(Config.num_rrdb_blocks, Config.num_channels).to(device)
+    if Config.use_light_model:
+        generator = LightGenerator(Config.light_num_rrdb_blocks, Config.light_num_channels).to(device)
+    else:
+        generator = Generator(Config.num_rrdb_blocks, Config.num_channels).to(device)
     discriminator = Discriminator().to(device)
 
     # 损失函数

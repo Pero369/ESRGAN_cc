@@ -116,3 +116,42 @@ EXPERIMENTS = [
 1. 运行 `python train_sweep.py` 跑消融实验
 2. 用 `python test.py` 对同一张测试图推理，对比各组输出
 3. 对比指标：PSNR、SSIM、视觉质量（颜色准确性、纹理细节、伪影）
+
+---
+
+## 改进5：轻量化网络结构
+
+**目标**：将生成器参数量从 ~16M 压缩至 ~2-3M，满足"轻量级神经网络图像增强"课题要求
+
+**两个正交压缩手段**：
+1. RRDB 块数：23 → 8
+2. DenseBlock 内标准卷积 → Depthwise Separable Convolution（DSC）
+
+**DSC 结构**：
+```
+标准 Conv2d(in, out, 3) → DSConv: DWConv(in, in, 3, groups=in) + PWConv(in, out, 1)
+参数量压缩比约 9x（channels=32 vs 64）
+```
+
+**参数量对比**：
+
+| 配置 | 参数量 |
+|------|--------|
+| 原始（23块, ch=64, 标准卷积） | ~16M |
+| 轻量（8块, ch=32, DSC） | ~2.3M |
+
+**改动文件**：
+- `models/rrdb.py`：新增 `DSConv`、`LightDenseBlock`、`LightRRDB`（原有类保留）
+- `models/generator.py`：新增 `LightGenerator`（与 `Generator` 接口一致）
+- `config.py`：新增 `use_light_model = True`、`light_num_rrdb_blocks = 8`、`light_num_channels = 32`
+- `train.py`：按 `Config.use_light_model` 选择实例化哪个生成器
+
+**验证**：
+```python
+from models.generator import LightGenerator
+import torch
+m = LightGenerator()
+print(sum(p.numel() for p in m.parameters()) / 1e6, "M")  # 期望 ~2.3M
+out = m(torch.randn(1, 3, 32, 32))
+assert out.shape == (1, 3, 128, 128)
+```

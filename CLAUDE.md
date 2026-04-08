@@ -8,6 +8,19 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 这是一个ESRGAN（Enhanced Super-Resolution Generative Adversarial Networks）的PyTorch实现，用于4倍图像超分辨率重建。
 
+**当前目标：轻量化改造**，将原版重型ESRGAN改造为轻量高效版本，满足毕业设计"轻量级神经网络图像增强"的课题要求。
+
+### 轻量化改造目标
+- 参数量：从 ~16M 降至 ~2-3M
+- RRDB块数量：23 → 6~8
+- 卷积类型：标准卷积 → Depthwise Separable Convolution
+- 保持完整训练框架不变，仅改造网络结构
+
+### 需要补充的实验
+- 原版 vs 轻量版对比：PSNR/SSIM/参数量/推理速度
+- 消融实验：验证各改进模块贡献
+- 标准数据集评估：Set5/Set14/DIV2K
+
 ## 核心架构
 
 ### 两阶段训练流程
