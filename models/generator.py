@@ -1,6 +1,6 @@
 import torch
 import torch.nn as nn
-from .rrdb import RRDB, LightRRDB
+from .rrdb import RRDB, LightRRDB, LightRRDBWithCA, LightRRDBWithCBAM
 
 class Generator(nn.Module):
     def __init__(self, num_rrdb=23, channels=64):
@@ -30,10 +30,31 @@ class Generator(nn.Module):
 
 
 class LightGenerator(nn.Module):
-    def __init__(self, num_rrdb=8, channels=32):
+    def __init__(self, num_rrdb=8, channels=32, enable_attention=False,
+                 attention_type='CA', attention_reduction=16, attention_position='rrdb'):
+        """
+        轻量化生成器
+        Args:
+            num_rrdb: RRDB块数量
+            channels: 特征通道数
+            enable_attention: 是否启用注意力机制
+            attention_type: 注意力类型 'CA' 或 'CBAM'
+            attention_reduction: 注意力降维比例
+            attention_position: 注意力位置 'dense' 或 'rrdb'
+        """
         super().__init__()
         self.conv_first = nn.Conv2d(3, channels, 3, 1, 1)
-        self.rrdb_blocks = nn.Sequential(*[LightRRDB(channels) for _ in range(num_rrdb)])
+
+        # 根据配置选择RRDB类型
+        if enable_attention:
+            if attention_type == 'CBAM':
+                rrdb_block = lambda: LightRRDBWithCBAM(channels, attention_reduction)
+            else:  # 'CA'
+                rrdb_block = lambda: LightRRDBWithCA(channels, attention_reduction, attention_position)
+        else:
+            rrdb_block = lambda: LightRRDB(channels)
+
+        self.rrdb_blocks = nn.Sequential(*[rrdb_block() for _ in range(num_rrdb)])
         self.conv_body = nn.Conv2d(channels, channels, 3, 1, 1)
 
         self.upconv1 = nn.Conv2d(channels, channels * 4, 3, 1, 1)

@@ -4,7 +4,7 @@ from torch.utils.data import DataLoader
 from tqdm import tqdm
 import os
 
-from models import Generator, Discriminator, PerceptualLoss, GANLoss, PixelLoss
+from models import Generator, Discriminator, PerceptualLoss, GANLoss, PixelLoss, GradientLoss
 from models.generator import LightGenerator
 from data import SRDataset
 from config import Config
@@ -17,15 +17,32 @@ def train():
 
     # 初始化模型
     if Config.use_light_model:
-        generator = LightGenerator(Config.light_num_rrdb_blocks, Config.light_num_channels).to(device)
+        generator = LightGenerator(
+            Config.light_num_rrdb_blocks,
+            Config.light_num_channels,
+            enable_attention=Config.enable_attention,
+            attention_type=Config.attention_type,
+            attention_reduction=Config.attention_reduction,
+            attention_position=Config.attention_position
+        ).to(device)
+        print(f'使用轻量化模型: {Config.light_num_rrdb_blocks} RRDB块, {Config.light_num_channels} 通道')
+        if Config.enable_attention:
+            print(f'注意力机制: {Config.attention_type}, 位置: {Config.attention_position}')
     else:
         generator = Generator(Config.num_rrdb_blocks, Config.num_channels).to(device)
+        print(f'使用原版模型: {Config.num_rrdb_blocks} RRDB块, {Config.num_channels} 通道')
+
     discriminator = Discriminator().to(device)
 
     # 损失函数
     pixel_loss = PixelLoss()
     perceptual_loss = PerceptualLoss().to(device)
     gan_loss = GANLoss()
+
+    # 梯度损失（可选）
+    if Config.enable_gradient_loss:
+        gradient_loss = GradientLoss().to(device)
+        print(f'启用梯度损失: 权重={Config.lambda_gradient}, 阶段={Config.gradient_loss_stage}')
 
     # 优化器
     optimizer_g = optim.Adam(generator.parameters(), lr=Config.lr_g, betas=(Config.beta1, Config.beta2))
@@ -46,6 +63,12 @@ def train():
             optimizer_g.zero_grad()
             sr_img = generator(lr_img)
             loss = pixel_loss(sr_img, hr_img)
+
+            # 添加梯度损失（如果启用且在PSNR阶段）
+            if Config.enable_gradient_loss and Config.gradient_loss_stage in ['psnr', 'both']:
+                grad_loss = gradient_loss(sr_img, hr_img)
+                loss = loss + grad_loss * Config.lambda_gradient
+
             loss.backward()
             optimizer_g.step()
 
@@ -89,6 +112,12 @@ def train():
             perc_loss = perceptual_loss(sr_img, hr_img)
             adv_loss = gan_loss(d_real, d_fake, is_disc=False)
             g_loss = pix_loss * Config.lambda_pixel + perc_loss * Config.lambda_perceptual + adv_loss * Config.lambda_adversarial
+
+            # 添加梯度损失（如果启用且在GAN阶段）
+            if Config.enable_gradient_loss and Config.gradient_loss_stage in ['gan', 'both']:
+                grad_loss = gradient_loss(sr_img, hr_img)
+                g_loss = g_loss + grad_loss * Config.lambda_gradient
+
             g_loss.backward()
             optimizer_g.step()
 

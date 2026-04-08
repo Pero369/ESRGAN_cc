@@ -53,3 +53,14 @@ class Config:
     # JPEG压缩参数
     jpeg_quality_range = (60, 95)    # JPEG质量范围
     jpeg_prob = 0.8                  # 应用概率
+
+    # 注意力机制配置
+    enable_attention = False         # 注意力机制总开关
+    attention_type = 'CA'            # 注意力类型: 'CA'(通道), 'SA'(空间), 'CBAM'(两者结合)
+    attention_reduction = 16         # SE模块降维比例
+    attention_position = 'rrdb'      # 注意力位置: 'dense'(DenseBlock级), 'rrdb'(RRDB级), 'both'
+
+    # 边缘感知损失配置
+    enable_gradient_loss = False     # 梯度损失开关
+    lambda_gradient = 0.1            # 梯度损失权重（建议0.05~0.2）
+    gradient_loss_stage = 'both'     # 应用阶段: 'psnr', 'gan', 'both'
