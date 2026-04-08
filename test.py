@@ -1,13 +1,27 @@
 import torch
 import argparse
 import os
-from models import Generator
+from models import Generator, LightGenerator
 from utils import load_image, save_image
+from config import Config
 
 def test(args):
     device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
 
-    generator = Generator().to(device)
+    # 根据参数或配置选择模型
+    if args.light_model:
+        generator = LightGenerator(
+            num_rrdb=Config.light_num_rrdb_blocks,
+            channels=Config.light_num_channels
+        ).to(device)
+        print(f'使用轻量化模型: {Config.light_num_rrdb_blocks} RRDB块, {Config.light_num_channels} 通道')
+    else:
+        generator = Generator(
+            num_rrdb=Config.num_rrdb_blocks,
+            channels=Config.num_channels
+        ).to(device)
+        print(f'使用原版模型: {Config.num_rrdb_blocks} RRDB块, {Config.num_channels} 通道')
+
     generator.load_state_dict(torch.load(args.model_path, map_location=device))
     generator.eval()
 
@@ -40,5 +54,6 @@ if __name__ == '__main__':
     parser.add_argument('--input_path', type=str, required=True, help='输入图像路径或目录')
     parser.add_argument('--output_dir', type=str, default='./results', help='输出目录')
     parser.add_argument('--model_path', type=str, required=True, help='模型权重路径')
+    parser.add_argument('--light_model', action='store_true', help='使用轻量化模型（默认使用原版模型）')
     args = parser.parse_args()
     test(args)

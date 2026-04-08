@@ -8,7 +8,7 @@ from torch.utils.data import DataLoader
 from tqdm import tqdm
 import os
 
-from models import Generator, Discriminator, PerceptualLoss, GANLoss, PixelLoss
+from models import Generator, LightGenerator, Discriminator, PerceptualLoss, GANLoss, PixelLoss
 from data import SRDataset
 from config import Config
 from utils import save_image
@@ -43,7 +43,14 @@ def run_experiment(cfg, exp_name: str):
     os.makedirs(ckpt_dir, exist_ok=True)
     os.makedirs(sample_dir, exist_ok=True)
 
-    generator = Generator(cfg.num_rrdb_blocks, cfg.num_channels).to(device)
+    # 根据配置选择模型
+    if cfg.use_light_model:
+        generator = LightGenerator(cfg.light_num_rrdb_blocks, cfg.light_num_channels).to(device)
+        print(f"使用轻量化模型: {cfg.light_num_rrdb_blocks} RRDB块, {cfg.light_num_channels} 通道")
+    else:
+        generator = Generator(cfg.num_rrdb_blocks, cfg.num_channels).to(device)
+        print(f"使用原版模型: {cfg.num_rrdb_blocks} RRDB块, {cfg.num_channels} 通道")
+
     discriminator = Discriminator().to(device)
 
     pixel_loss = PixelLoss()

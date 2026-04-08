@@ -11,8 +11,9 @@ class Config:
 
     # 训练参数
     batch_size = 16
-    num_epochs_psnr = 50
-    num_epochs_gan = 150
+    #训练轮数，加快测试，实际训练时可以设置更大
+    num_epochs_psnr = 30
+    num_epochs_gan = 30
     lr_g = 1e-4
     lr_d = 1e-4
     beta1 = 0.9
@@ -21,7 +22,8 @@ class Config:
     # 损失权重
     lambda_perceptual = 1.0
     lambda_adversarial = 0.005
-    lambda_pixel = 0.01
+    #合适的参数是0.11和0.13
+    lambda_pixel = 0.13
 
     # 数据参数
     hr_size = 128
@@ -34,10 +36,10 @@ class Config:
     sample_dir = './samples'
 
     # 退化参数
-    enable_degradation = True  # 总开关（启用退化模块）
-    enable_blur = True         # 高斯模糊开关
-    enable_noise = True        # 高斯噪声开关
-    enable_jpeg = True         # JPEG压缩开关
+    enable_degradation = False  # 总开关（启用退化模块）
+    enable_blur = False         # 高斯模糊开关
+    enable_noise = False        # 高斯噪声开关
+    enable_jpeg = False         # JPEG压缩开关
 
     # 高斯模糊参数
     blur_kernel_range = (7, 21)      # kernel size范围（奇数）
