@@ -151,6 +151,25 @@ python test.py --input_path ./test_images --output_dir ./results --model_path ./
 
 ## 高级功能
 
+### 对比实验
+
+详细使用方法请参考 [对比实验使用指南](docs/comparison_guide.md)。
+
+#### 模型复杂度分析
+```bash
+python scripts/model_complexity.py --models ./checkpoints/model1.pth:light:模型1 ./checkpoints/model2.pth:original:模型2
+```
+
+#### 图像质量评估
+```bash
+python scripts/evaluate_quality.py --model_path ./checkpoints/generator_gan_150.pth --test_dir ./data/test_set --light_model --save_images
+```
+
+#### 可视化对比
+```bash
+python scripts/visualize_comparison.py --complexity_csv ./results/model_complexity.csv --output_dir ./results/visualizations
+```
+
 ### 性能基准测试
 
 测试模型的推理速度和内存占用：
