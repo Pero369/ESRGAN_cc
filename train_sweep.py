@@ -217,6 +217,10 @@ def run_experiment(cfg, exp_name: str):
         print(log_str)
 
         if (epoch + 1) % 10 == 0:
+            # 只保留最新的PSNR检查点
+            prev = f"{ckpt_dir}/generator_psnr_{epoch+1-10}.pth"
+            if os.path.exists(prev):
+                os.remove(prev)
             torch.save(generator.state_dict(), f"{ckpt_dir}/generator_psnr_{epoch+1}.pth")
             with torch.no_grad():
                 sr_sample = generator(lr_img[:4])
@@ -285,6 +289,11 @@ def run_experiment(cfg, exp_name: str):
         print(log_str)
 
         if (epoch + 1) % 10 == 0:
+            # 只保留最新的GAN检查点
+            prev = epoch + 1 - 10
+            for f in [f"{ckpt_dir}/generator_gan_{prev}.pth", f"{ckpt_dir}/discriminator_gan_{prev}.pth"]:
+                if os.path.exists(f):
+                    os.remove(f)
             torch.save(generator.state_dict(), f"{ckpt_dir}/generator_gan_{epoch+1}.pth")
             torch.save(discriminator.state_dict(), f"{ckpt_dir}/discriminator_gan_{epoch+1}.pth")
             with torch.no_grad():
