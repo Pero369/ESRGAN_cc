@@ -2,8 +2,10 @@
 模型复杂度分析脚本
 统计参数量、FLOPs、模型大小等指标
 """
-import torch
+import sys
 import os
+sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+import torch
 import argparse
 from models import LightGenerator, Generator
 from config import Config
