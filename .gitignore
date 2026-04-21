@@ -18,6 +18,7 @@ env/
 
 # 训练产物 - 模型权重
 checkpoints/
+pretrain_model/
 
 # 训练产物 - 样本图像
 samples/
