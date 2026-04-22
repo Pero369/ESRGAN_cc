@@ -201,7 +201,7 @@ if __name__ == "__main__":
     parser.add_argument("--test_dir", default="", help="HR测试图像目录（留空则跳过质量评估）")
     parser.add_argument("--device", default="cuda", choices=["cuda", "cpu"])
     parser.add_argument("--bench_size", type=int, default=256, help="推理速度测试的输入分辨率")
-    parser.add_argument("--output_csv", default="./results/comparison.csv")
+    parser.add_argument("--output_csv", default="")
     parser.add_argument(
         "--group",
         choices=["all", "comprehensive", "ablation", "attention", "gradient"],
@@ -223,4 +223,5 @@ if __name__ == "__main__":
     }
 
     keys = args.keys if args.keys else GROUP_MAP[args.group]
-    run_comparison(keys, args.checkpoint_root, args.test_dir or None, device, args.output_csv, args.bench_size)
+    output_csv = args.output_csv or f"./results/comparison_{args.group}.csv"
+    run_comparison(keys, args.checkpoint_root, args.test_dir or None, device, output_csv, args.bench_size)

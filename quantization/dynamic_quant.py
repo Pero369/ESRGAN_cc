@@ -2,9 +2,11 @@
 动态量化脚本
 将训练好的模型进行INT8动态量化，减小模型大小并提升CPU推理速度
 """
+import sys
+import os
+sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 import torch
 import torch.quantization as quant
-import os
 import argparse
 from models import LightGenerator, Generator
 from config import Config
