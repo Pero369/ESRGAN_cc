@@ -111,11 +111,13 @@ def make_config(overrides: dict):
     return cfg
 
 
-def run_experiment(cfg, exp_name: str):
+def run_experiment(cfg, exp_name: str, run_dir: str = None):
     device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 
-    ckpt_dir = os.path.join(cfg.checkpoint_dir, exp_name)
-    sample_dir = os.path.join(cfg.sample_dir, exp_name)
+    base_ckpt = run_dir if run_dir else cfg.checkpoint_dir
+    base_sample = os.path.join(os.path.dirname(base_ckpt), "samples", os.path.basename(base_ckpt)) if run_dir else cfg.sample_dir
+    ckpt_dir = os.path.join(base_ckpt, exp_name)
+    sample_dir = os.path.join(base_sample, exp_name)
     os.makedirs(ckpt_dir, exist_ok=True)
     os.makedirs(sample_dir, exist_ok=True)
 
@@ -347,10 +349,15 @@ def generate_exp_name(overrides):
 
 
 if __name__ == "__main__":
+    exp_group_name = next((k for k, v in globals().items() if v is EXPERIMENTS and k != "EXPERIMENTS"), "sweep")
+    run_dir = os.path.join(Config.checkpoint_dir, exp_group_name)
+    os.makedirs(run_dir, exist_ok=True)
+
     print(f"\n{'='*70}")
     print(f"批量参数扫描训练")
     print(f"{'='*70}")
     print(f"总实验数: {len(EXPERIMENTS)}")
+    print(f"运行目录: {run_dir}")
     print(f"{'='*70}\n")
 
     for idx, overrides in enumerate(EXPERIMENTS, 1):
@@ -363,7 +370,7 @@ if __name__ == "__main__":
         cfg = make_config(overrides)
 
         try:
-            run_experiment(cfg, exp_name)
+            run_experiment(cfg, exp_name, run_dir)
             print(f"\n✓ 实验 {exp_name} 完成")
         except Exception as e:
             print(f"\n✗ 实验 {exp_name} 失败: {str(e)}")

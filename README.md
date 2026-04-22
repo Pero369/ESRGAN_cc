@@ -153,22 +153,37 @@ python test.py --input_path ./test_images --output_dir ./results --model_path ./
 
 ### 对比实验
 
-详细使用方法请参考 [对比实验使用指南](docs/comparison_guide.md)。
+使用 `compare_models.py` 一键对比多个实验的参数量、推理速度、PSNR/SSIM：
 
-#### 模型复杂度分析
 ```bash
-python scripts/model_complexity.py --models ./checkpoints/model1.pth:light:模型1 ./checkpoints/model2.pth:original:模型2
+# 综合实验组（原版 vs 轻量版全系列）
+python compare_models.py --group comprehensive --test_dir ./data/val_hr --device cuda
+
+# 消融实验组
+python compare_models.py --group ablation --test_dir ./data/val_hr --device cuda
+
+# 注意力机制对比
+python compare_models.py --group attention --test_dir ./data/val_hr --device cuda
+
+# 梯度损失权重对比
+python compare_models.py --group gradient --test_dir ./data/val_hr --device cuda
+
+# 全部实验
+python compare_models.py --group all --test_dir ./data/val_hr --output_csv ./results/all_comparison.csv
+
+# 仅测速（无测试集）
+python compare_models.py --group comprehensive --device cuda
+
+# CPU 环境
+python compare_models.py --group comprehensive --device cpu --bench_size 128
 ```
 
-#### 图像质量评估
-```bash
-python scripts/evaluate_quality.py --model_path ./checkpoints/generator_gan_150.pth --test_dir ./data/test_set --light_model --save_images
-```
-
-#### 可视化对比
-```bash
-python scripts/visualize_comparison.py --complexity_csv ./results/model_complexity.csv --output_dir ./results/visualizations
-```
+**参数说明**：
+- `--group`: 实验组，可选 `comprehensive` / `ablation` / `attention` / `gradient` / `all`
+- `--test_dir`: HR 测试图像目录，留空则跳过 PSNR/SSIM 评估
+- `--bench_size`: 推理速度测试分辨率（默认256）
+- `--output_csv`: 结果保存路径（默认 `./results/comparison.csv`）
+- `--keys`: 手动指定实验 key，例如 `COMPREHENSIVE_EXPERIMENTS/original COMPREHENSIVE_EXPERIMENTS/light`
 
 ### 性能基准测试
 
