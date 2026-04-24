@@ -43,5 +43,12 @@ data/val_hr/
 .DS_Store
 Thumbs.db
 
+# ONNX 模型
+onnx_models/*.onnx
+
+# 量化模型
+quantization/**/*.pth
+quantization/**/*.onnx
+
 # Claude Code 内部文件
 .claude/

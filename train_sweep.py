@@ -97,8 +97,14 @@ COMPREHENSIVE_EXPERIMENTS = [
      "num_epochs_psnr": 10, "num_epochs_gan": 10},
 ]
 
+# 最优配置（基于150 epoch实验：PSNR 25.84, SSIM 0.7342）
+BEST_EXPERIMENTS = [
+    {"use_light_model": True,
+     "enable_gradient_loss": True, "lambda_gradient": 0.1},
+]
+
 # 选择要运行的实验组（修改这里来切换实验）
-EXPERIMENTS = ABLATION_EXPERIMENTS  # 默认运行消融实验
+EXPERIMENTS = BEST_EXPERIMENTS  # 最优配置：轻量版 + 梯度损失0.1
 
 # ============================================================
 

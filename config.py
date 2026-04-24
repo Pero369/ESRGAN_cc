@@ -12,8 +12,8 @@ class Config:
     # 训练参数
     batch_size = 16
     #训练轮数，加快测试，实际训练时可以设置更大
-    num_epochs_psnr = 30
-    num_epochs_gan = 30
+    num_epochs_psnr = 50
+    num_epochs_gan = 150
     lr_g = 1e-4
     lr_d = 1e-4
     beta1 = 0.9
