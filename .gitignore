@@ -29,6 +29,8 @@ results/
 # 数据集（通常不入库）
 data/train_hr/
 data/val_hr/
+data/Set5/
+data/Set14/
 
 # Jupyter
 .ipynb_checkpoints/
@@ -52,3 +54,7 @@ quantization/**/*.onnx
 
 # Claude Code 内部文件
 .claude/
+
+
+# 其他临时文件
+*.png

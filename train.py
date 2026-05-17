@@ -3,6 +3,7 @@ import torch.optim as optim
 from torch.utils.data import DataLoader
 from tqdm import tqdm
 import os
+import csv
 
 from models import Generator, Discriminator, PerceptualLoss, GANLoss, PixelLoss, GradientLoss
 from models.generator import LightGenerator
@@ -14,6 +15,10 @@ def train():
     device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
     os.makedirs(Config.checkpoint_dir, exist_ok=True)
     os.makedirs(Config.sample_dir, exist_ok=True)
+    log_dir = './logs'
+    os.makedirs(log_dir, exist_ok=True)
+    psnr_log_path = os.path.join(log_dir, 'psnr_stage.csv')
+    gan_log_path = os.path.join(log_dir, 'gan_stage.csv')
 
     # 初始化模型
     if Config.use_light_model:
@@ -54,27 +59,36 @@ def train():
 
     # 阶段1: PSNR预训练
     print("阶段1: PSNR预训练")
+    with open(psnr_log_path, 'w', newline='') as f:
+        csv.writer(f).writerow(['epoch', 'pixel_loss', 'grad_loss', 'total_loss'])
     for epoch in range(Config.num_epochs_psnr):
         generator.train()
-        epoch_loss = 0
+        epoch_pixel_loss = 0
+        epoch_grad_loss = 0
         for lr_img, hr_img in tqdm(train_loader, desc=f'Epoch {epoch+1}/{Config.num_epochs_psnr}'):
             lr_img, hr_img = lr_img.to(device), hr_img.to(device)
 
             optimizer_g.zero_grad()
             sr_img = generator(lr_img)
             loss = pixel_loss(sr_img, hr_img)
+            epoch_pixel_loss += loss.item()
 
             # 添加梯度损失（如果启用且在PSNR阶段）
             if Config.enable_gradient_loss and Config.gradient_loss_stage in ['psnr', 'both']:
                 grad_loss = gradient_loss(sr_img, hr_img)
+                epoch_grad_loss += grad_loss.item()
                 loss = loss + grad_loss * Config.lambda_gradient
 
             loss.backward()
             optimizer_g.step()
 
-            epoch_loss += loss.item()
-
-        print(f'Epoch {epoch+1}, Loss: {epoch_loss/len(train_loader):.4f}')
+        n = len(train_loader)
+        avg_pixel = epoch_pixel_loss / n
+        avg_grad = epoch_grad_loss / n
+        avg_total = avg_pixel + avg_grad * Config.lambda_gradient if Config.enable_gradient_loss else avg_pixel
+        print(f'Epoch {epoch+1}, Loss: {avg_total:.4f}')
+        with open(psnr_log_path, 'a', newline='') as f:
+            csv.writer(f).writerow([epoch + 1, f'{avg_pixel:.6f}', f'{avg_grad:.6f}', f'{avg_total:.6f}'])
 
         if (epoch + 1) % 10 == 0:
             torch.save(generator.state_dict(), f'{Config.checkpoint_dir}/generator_psnr_{epoch+1}.pth')
@@ -85,11 +99,17 @@ def train():
 
     # 阶段2: GAN训练
     print("\n阶段2: GAN训练")
+    with open(gan_log_path, 'w', newline='') as f:
+        csv.writer(f).writerow(['epoch', 'g_loss', 'd_loss', 'pixel_loss', 'perceptual_loss', 'adv_loss', 'grad_loss'])
     for epoch in range(Config.num_epochs_gan):
         generator.train()
         discriminator.train()
         epoch_g_loss = 0
         epoch_d_loss = 0
+        epoch_pix_loss = 0
+        epoch_perc_loss = 0
+        epoch_adv_loss = 0
+        epoch_grad_loss = 0
 
         for lr_img, hr_img in tqdm(train_loader, desc=f'Epoch {epoch+1}/{Config.num_epochs_gan}'):
             lr_img, hr_img = lr_img.to(device), hr_img.to(device)
@@ -116,6 +136,7 @@ def train():
             # 添加梯度损失（如果启用且在GAN阶段）
             if Config.enable_gradient_loss and Config.gradient_loss_stage in ['gan', 'both']:
                 grad_loss = gradient_loss(sr_img, hr_img)
+                epoch_grad_loss += grad_loss.item()
                 g_loss = g_loss + grad_loss * Config.lambda_gradient
 
             g_loss.backward()
@@ -123,8 +144,20 @@ def train():
 
             epoch_g_loss += g_loss.item()
             epoch_d_loss += d_loss.item()
+            epoch_pix_loss += pix_loss.item()
+            epoch_perc_loss += perc_loss.item()
+            epoch_adv_loss += adv_loss.item()
 
-        print(f'Epoch {epoch+1}, G_Loss: {epoch_g_loss/len(train_loader):.4f}, D_Loss: {epoch_d_loss/len(train_loader):.4f}')
+        n = len(train_loader)
+        avg = lambda x: x / n
+        print(f'Epoch {epoch+1}, G_Loss: {avg(epoch_g_loss):.4f}, D_Loss: {avg(epoch_d_loss):.4f}')
+        with open(gan_log_path, 'a', newline='') as f:
+            csv.writer(f).writerow([
+                epoch + 1,
+                f'{avg(epoch_g_loss):.6f}', f'{avg(epoch_d_loss):.6f}',
+                f'{avg(epoch_pix_loss):.6f}', f'{avg(epoch_perc_loss):.6f}',
+                f'{avg(epoch_adv_loss):.6f}', f'{avg(epoch_grad_loss):.6f}',
+            ])
 
         if (epoch + 1) % 10 == 0:
             torch.save(generator.state_dict(), f'{Config.checkpoint_dir}/generator_gan_{epoch+1}.pth')
