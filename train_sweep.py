@@ -75,6 +75,17 @@ LIGHTWEIGHT_EXPERIMENTS = [
     {"light_num_rrdb_blocks": 8, "light_num_channels": 40},
 ]
 
+# 参数量-性能权衡实验（固定最优配置，只改RRDB块数）
+PARETO_EXPERIMENTS = [
+    {"light_num_rrdb_blocks": 4, "light_num_channels": 32,
+     "enable_gradient_loss": True, "lambda_gradient": 0.1},
+    {"light_num_rrdb_blocks": 6, "light_num_channels": 32,
+     "enable_gradient_loss": True, "lambda_gradient": 0.1},
+    # blocks=8 已有结果（PSNR=25.84，SSIM=0.7342），可跳过
+    {"light_num_rrdb_blocks": 10, "light_num_channels": 32,
+     "enable_gradient_loss": True, "lambda_gradient": 0.1},
+]
+
 # 示例6: 综合优化实验
 COMPREHENSIVE_EXPERIMENTS = [
     # 原版模型（对比基线）

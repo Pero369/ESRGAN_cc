@@ -6,7 +6,7 @@ import csv
 from PIL import Image
 from skimage.metrics import peak_signal_noise_ratio as psnr, structural_similarity as ssim
 import lpips
-from models import LightGenerator
+from models import LightGenerator, Generator
 from config import Config
 
 
@@ -45,9 +45,12 @@ def np_to_lpips_tensor(img_np, device):
     return t * 2 - 1
 
 
-def evaluate(model_path, dataset_dir, output_csv=None, y_channel=False):
+def evaluate(model_path, dataset_dir, output_csv=None, y_channel=False, original=False):
     device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
-    gen = LightGenerator(num_rrdb=Config.light_num_rrdb_blocks, channels=Config.light_num_channels).to(device)
+    if original:
+        gen = Generator(Config.num_rrdb_blocks, Config.num_channels).to(device)
+    else:
+        gen = LightGenerator(num_rrdb=Config.light_num_rrdb_blocks, channels=Config.light_num_channels).to(device)
     gen.load_state_dict(torch.load(model_path, map_location=device))
     gen.eval()
 
@@ -104,5 +107,6 @@ if __name__ == '__main__':
     parser.add_argument('--dataset_dir', type=str, required=True, help='Set5 或 Set14 目录')
     parser.add_argument('--output_csv', type=str, default=None)
     parser.add_argument('--y_channel', action='store_true', help='在Y通道计算指标（与公开论文数据对齐）')
+    parser.add_argument('--original', action='store_true', help='使用原版ESRGAN模型（Generator）')
     args = parser.parse_args()
-    evaluate(args.model_path, args.dataset_dir, args.output_csv, args.y_channel)
+    evaluate(args.model_path, args.dataset_dir, args.output_csv, args.y_channel, args.original)
