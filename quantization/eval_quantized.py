@@ -26,7 +26,7 @@ def calc_psnr_ssim(sr_np, hr_np, y_channel=True):
     return psnr(hr_np, sr_np, data_range=1.0), ssim(hr_np, sr_np, data_range=1.0, channel_axis=2)
 
 
-def load_quantized_model(quant_weights_path):
+def load_quantized_model(fp32_weights_path):
     model = LightGenerator(
         Config.light_num_rrdb_blocks, Config.light_num_channels,
         enable_attention=Config.enable_attention,
@@ -34,11 +34,9 @@ def load_quantized_model(quant_weights_path):
         attention_reduction=Config.attention_reduction,
         attention_position=Config.attention_position
     ).cpu()
+    model.load_state_dict(torch.load(fp32_weights_path, map_location='cpu'))
     model.eval()
-    quantized = quant.quantize_dynamic(model, {torch.nn.Conv2d, torch.nn.Linear}, dtype=torch.qint8)
-    quantized.load_state_dict(torch.load(quant_weights_path, map_location='cpu'))
-    quantized.eval()
-    return quantized
+    return quant.quantize_dynamic(model, {torch.nn.Conv2d, torch.nn.Linear}, dtype=torch.qint8)
 
 
 def load_fp32_model(weights_path):
@@ -88,16 +86,21 @@ def evaluate_on_dataset(model, dataset_dir, y_channel=True):
 
 if __name__ == '__main__':
     fp32_path = os.path.join(os.path.dirname(__file__), '..', 'checkpoints', 'GRADIENT_LOSS_EXPERIMENTS', 'grad0.1', 'generator_gan_150.pth')
-    quant_path = os.path.join(os.path.dirname(__file__), 'rrdb8_ch32', 'quantized_model.pth')
     set5_dir = os.path.join(os.path.dirname(__file__), '..', 'data', 'Set5')
     set14_dir = os.path.join(os.path.dirname(__file__), '..', 'data', 'Set14')
 
     print('加载模型...')
     fp32_model = load_fp32_model(fp32_path)
-    quant_model = load_quantized_model(quant_path)
+    quant_model = load_quantized_model(fp32_path)
 
     fp32_size = os.path.getsize(fp32_path) / (1024 * 1024)
-    quant_size = os.path.getsize(quant_path) / (1024 * 1024)
+    # 动态量化模型存在内存中，大小通过torch.save临时文件测量
+    import tempfile
+    with tempfile.NamedTemporaryFile(suffix='.pth', delete=False) as tmp:
+        tmp_path = tmp.name
+    torch.save(quant_model.state_dict(), tmp_path)
+    quant_size = os.path.getsize(tmp_path) / (1024 * 1024)
+    os.unlink(tmp_path)
     print(f'FP32 模型大小: {fp32_size:.2f} MB')
     print(f'INT8 模型大小: {quant_size:.2f} MB  (压缩 {(1-quant_size/fp32_size)*100:.0f}%)')
 
